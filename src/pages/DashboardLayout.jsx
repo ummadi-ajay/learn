@@ -1,125 +1,263 @@
 // src/pages/DashboardLayout.jsx
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase/firebase";
 
 function DashboardLayout({ children }) {
+  const location = useLocation();
   const navigate = useNavigate();
-  const user = auth.currentUser;
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const isInstructor = location.pathname.startsWith("/instructor");
+  const dashboardPath = isInstructor ? "/instructor" : "/student";
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      navigate("/login", { replace: true });
-    } catch (err) {
-      console.error("Error logging out:", err);
+      navigate("/login");
+    } catch (e) {
+      console.error(e);
     }
   };
 
+  const navItemBaseStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 16px",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+
+  const iconStyle = {
+    width: 18,
+    textAlign: "center",
+    fontSize: 16,
+  };
+
+  const textStyle = {
+    whiteSpace: "nowrap",
+  };
+
+  const isDashboardActive =
+    location.pathname === dashboardPath ||
+    location.pathname === `${dashboardPath}/`;
+
+  const closeMobileNav = () => setMobileNavOpen(false);
+
   return (
     <div
+      className="layout-root"
       style={{
+        display: "flex",
         minHeight: "100vh",
-        background: "#f4f4f4",
-        padding: "16px",
-        boxSizing: "border-box",
+        background: "#f3f4f6",
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
       }}
     >
-      <div
+      {/* Backdrop (for mobile) */}
+      {mobileNavOpen && (
+        <div
+          className="layout-backdrop"
+          onClick={closeMobileNav}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.35)",
+            zIndex: 15,
+          }}
+        />
+      )}
+
+      {/* LEFT PURPLE SIDEBAR */}
+      <aside
+        className={`layout-sidebar ${
+          mobileNavOpen ? "sidebar-open" : "sidebar-closed"
+        }`}
         style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
+          width: 220,
+          background: "#5b21b6",
+          color: "white",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          zIndex: 20,
         }}
       >
-        {/* Top bar */}
-        <div
-          style={{
-            marginBottom: "12px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: "20px",
-                fontWeight: "700",
-              }}
-            >
-              MakerWorks LMS
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#666",
-                marginTop: "2px",
-              }}
-            >
-              Learn • Teach • Track progress
-            </div>
-          </div>
-
+        <div>
+          {/* Logo */}
           <div
+            className="sidebar-logo"
             style={{
+              padding: "18px 12px 14px",
               display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              fontSize: "13px",
+              justifyContent: "center",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            {user && (
-              <div>
-                <div>{user.email}</div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    padding: "2px 8px",
-                    borderRadius: "999px",
-                    background: "#eee",
-                    display: "inline-block",
-                    marginTop: "2px",
-                  }}
-                >
-                  Logged in
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleLogout}
+            <div
               style={{
-                padding: "8px 10px",
-                border: "none",
-                borderRadius: "6px",
-                background: "#dc3545",
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer",
-                fontSize: "13px",
+                width: 72,
+                height: 72,
+                borderRadius: "999px",
+                background: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: 18,
+                color: "#5b21b6",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.18)",
               }}
             >
-              Logout
-            </button>
+              LOGO
+            </div>
           </div>
+
+          {/* Nav items */}
+          <nav className="sidebar-nav" style={{ marginTop: 10 }}>
+            <div
+              style={{
+                ...navItemBaseStyle,
+                backgroundColor: isDashboardActive ? "white" : "transparent",
+                color: isDashboardActive ? "#5b21b6" : "white",
+                borderRadius: "0 20px 20px 0",
+                marginRight: 8,
+              }}
+              onClick={() => {
+                navigate(dashboardPath);
+                closeMobileNav();
+              }}
+            >
+              <span style={iconStyle}>▦</span>
+              <span style={textStyle}>Dashboard</span>
+            </div>
+
+            <div style={navItemBaseStyle}>
+              <span style={iconStyle}>🕒</span>
+              <span style={textStyle}>History</span>
+            </div>
+
+            <div style={navItemBaseStyle}>
+              <span style={iconStyle}>🎓</span>
+              <span style={textStyle}>Semester</span>
+            </div>
+
+            <div style={navItemBaseStyle}>
+              <span style={iconStyle}>💳</span>
+              <span style={textStyle}>Payment</span>
+            </div>
+
+            <div style={navItemBaseStyle}>
+              <span style={iconStyle}>🔍</span>
+              <span style={textStyle}>Results</span>
+            </div>
+          </nav>
         </div>
 
-        {/* Main card with dashboard content */}
+        {/* Help bottom */}
         <div
+          className="sidebar-help"
           style={{
-            background: "white",
-            padding: "16px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            border: "1px solid #eee",
-            minHeight: "70vh",
-            overflow: "hidden",
+            padding: 12,
+            borderTop: "1px solid rgba(255,255,255,0.12)",
           }}
         >
-          {children}
+          <div
+            style={{
+              ...navItemBaseStyle,
+              padding: "8px 10px",
+              justifyContent: "center",
+              borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.6)",
+              fontSize: 13,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>❓</span>
+            <span>Help</span>
+          </div>
         </div>
+      </aside>
+
+      {/* RIGHT MAIN AREA */}
+      <div
+        className="layout-main"
+        style={{ flex: 1, display: "flex", flexDirection: "column" }}
+      >
+        <header
+          className="layout-topbar"
+          style={{
+            height: 56,
+            background: "white",
+            borderBottom: "1px solid #e5e7eb",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 16px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* HAMBURGER – visible on mobile via CSS */}
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileNavOpen((v) => !v)}
+              aria-label="Toggle menu"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: "1px solid #e5e7eb",
+                background: "white",
+                display: "none", // overridden by CSS on mobile
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
+              <span
+                style={{
+                  width: 16,
+                  height: 2,
+                  background: "#111827",
+                  display: "block",
+                  boxShadow: "0 5px 0 #111827, 0 -5px 0 #111827",
+                }}
+              ></span>
+            </button>
+
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "#111827",
+              }}
+            >
+              {isInstructor ? "Instructor Panel" : "Student Panel"}
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "6px 12px",
+              fontSize: 13,
+              borderRadius: 999,
+              border: "1px solid #e5e7eb",
+              background: "#f9fafb",
+              cursor: "pointer",
+            }}
+          >
+            Logout
+          </button>
+        </header>
+
+        <main
+          className="layout-content"
+          style={{ flex: 1, padding: 16, overflow: "auto" }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

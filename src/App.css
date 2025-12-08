@@ -1,42 +1,89 @@
+/* ==== BASIC RESET ==== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #f3f4f6;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  text-align: initial;
+  min-height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* (You can delete .logo, .card, .read-the-docs etc – not needed anymore) */
+
+
+/* ==== LAYOUT & SIDEBAR ==== */
+
+/* desktop / laptop default */
+.layout-sidebar {
+  flex-shrink: 0;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.hamburger-btn {
+  display: none; /* hidden on desktop */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* tablet: slightly smaller sidebar if desired */
+@media (max-width: 1024px) {
+  .layout-sidebar {
+    width: 200px;
   }
 }
 
-.card {
-  padding: 2em;
+/* ==== MOBILE: HAMBURGER + SLIDE-IN DRAWER ==== */
+
+@media (max-width: 768px) {
+  .layout-root {
+    flex-direction: column;
+  }
+
+  .layout-main {
+    flex: 1;
+  }
+
+  /* show hamburger on mobile */
+  .hamburger-btn {
+    display: inline-flex !important;
+  }
+
+  /* sidebar becomes off-canvas drawer */
+  .layout-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px !important;
+    z-index: 200 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s ease-in-out;
+  }
+
+  .layout-sidebar.sidebar-open {
+    transform: translateX(0) !important;
+  }
+
+  .layout-sidebar.sidebar-closed {
+    transform: translateX(-100%) !important;
+  }
+
+  .layout-content {
+    padding: 12px !important;
+  }
 }
 
-.read-the-docs {
-  color: #888;
-}
+/* backdrop visibility is controlled from JSX (only rendered when open),
+   so no extra CSS needed beyond default */

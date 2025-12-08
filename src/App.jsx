@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { auth, db } from "./firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
-
+import "./index.css"; 
 import LoginPage from "./pages/LoginPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
 import StudentDashboard from "./pages/StudentDashboard.jsx";
