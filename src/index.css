@@ -1,0 +1,249 @@
+/* ================================================= */
+/* === GLOBAL STYLES (Adjusted for Dark Theme) === */
+/* ================================================= */
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px; /* Larger base font for readability */
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: #f3f4f6; /* Light gray text for dark theme */
+  background-color: #0b0c10; /* Near-black background */
+
+  --color-primary: #60a5fa; /* Vibrant blue for actions/links */
+  --color-text-muted: #9ca3af; 
+  --color-border: rgba(255, 255, 255, 0.2); /* Light translucent border */
+}
+
+/* Body and Root adjustments */
+body, #root {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #0b0c10; 
+}
+
+/* Links */
+a {
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 14px;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Inputs, Buttons, etc. (use system fonts) */
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 16px;
+}
+
+/* Utility classes */
+.small-text {
+  font-size: 13px;
+}
+.tiny-text {
+  font-size: 12px;
+}
+
+/* ================================================= */
+/* === AUTH LAYOUT (Nebula Gate) === */
+/* ================================================= */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  
+  /* Apply Image Background (Assuming the nebula image is set via HTML/React component or a dedicated class) */
+  background: url('path/to/your/nebula-image.jpg') no-repeat center center/cover;
+  position: relative;
+}
+
+/* Optional: Add a subtle overlay to increase readability against the image */
+.auth-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+    backdrop-filter: brightness(0.6); /* Slightly darkens the image */
+    z-index: 0;
+}
+
+/* Main Card (The Frosted Glass Effect) */
+.auth-shell {
+  width: 100%;
+  max-width: 440px; /* Single column, centered design */
+  background: rgba(255, 255, 255, 0.1); /* Slightly translucent white */
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* Stronger dark shadow */
+  
+  /* The Key Frosted Glass Effect */
+  backdrop-filter: blur(10px); 
+  -webkit-backdrop-filter: blur(10px);
+  
+  padding: 40px; /* Generous internal padding */
+  z-index: 1; /* Keep it above the overlay */
+}
+
+/* Auth Panel Content (No split panel in this design) */
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-logo {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-primary);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth-subtitle {
+  margin: 4px 0 28px;
+  font-size: 16px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.auth-field input,
+.auth-field select {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.08); /* Darker, slightly translucent input background */
+  color: #f3f4f6; /* White text input */
+  outline: none;
+}
+
+.auth-field input:focus,
+.auth-field select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3);
+}
+
+/* small row under fields (forgot pw / etc) */
+.auth-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* primary CTA button */
+.auth-primary-btn {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-primary);
+  color: #0b0c10; /* Dark text for contrast against bright button */
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.auth-primary-btn:hover:not(:disabled) {
+  background: #3b82f6; /* Slightly darker on hover */
+}
+.auth-primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* divider + social buttons */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 30px 0 16px;
+}
+.auth-divider span:first-child,
+.auth-divider span:last-child {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.auth-social-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-social-btn {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.05); /* Very light translucent background */
+  padding: 12px 0;
+  font-size: 14px;
+  color: #f3f4f6;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.auth-social-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* messages */
+.auth-message {
+  margin-top: 12px;
+  font-size: 14px;
+}
+.auth-message.error {
+  color: #f87171; /* Light red */
+}
+.auth-message.success {
+  color: #34d399; /* Light green */
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .auth-shell {
+    max-width: 100%;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .auth-social-row {
+      flex-direction: column;
+  }
+}
