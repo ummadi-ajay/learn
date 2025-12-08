@@ -322,3 +322,23 @@ button {
     white-space: nowrap;
   }
 }
+/* CoursePage responsive (video left, lessons right → stack on mobile) */
+
+@media (max-width: 900px) {
+  .cp-root {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 56px);
+  }
+
+  .cp-left {
+    width: 100%;
+  }
+
+  .cp-right {
+    width: 100%;
+    max-height: 320px;
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+  }
+}
