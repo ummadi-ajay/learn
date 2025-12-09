@@ -5,6 +5,9 @@ import {
   query,
   orderBy,
   onSnapshot,
+  doc,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
@@ -48,12 +51,31 @@ function StudentDashboard({ user }) {
     navigate(`/courses/${courseId}`);
   };
 
+  // create/mark progress when starting a course
+  const handleStartCourse = async (courseId) => {
+    try {
+      const ref = doc(db, "users", user.uid, "progress", courseId);
+      await setDoc(
+        ref,
+        {
+          startedAt: serverTimestamp(),
+          completedLessons: [],
+          lastOpenedLessonId: null,
+        },
+        { merge: true }
+      );
+      goToCourse(courseId);
+    } catch (err) {
+      console.error("Error starting course:", err);
+      goToCourse(courseId); // still navigate even if write fails
+    }
+  };
+
   const purple = "#6d28d9";
   const purpleLight = "#f5f3ff";
 
   return (
     <div
-      className="sd-root"
       style={{
         padding: 0,
         display: "flex",
@@ -63,7 +85,6 @@ function StudentDashboard({ user }) {
       }}
     >
       <div
-        className="sd-inner"
         style={{
           width: "100%",
           maxWidth: 1200,
@@ -106,17 +127,15 @@ function StudentDashboard({ user }) {
           />
         </div>
 
-        
         {/* TOP SECTION: profile + overview */}
-  <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: 16,
-    marginBottom: 22,
-  }}
->
-
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.5fr)",
+            gap: 16,
+            marginBottom: 22,
+          }}
+        >
           {/* Left: profile card */}
           <div
             style={{
@@ -388,101 +407,202 @@ function StudentDashboard({ user }) {
           </div>
         </div>
 
-        {/* ENROLLED COURSES */}
-        <div style={{ marginBottom: 20 }}>
+       {/* ENROLLED COURSES – UDEMY STYLE PROGRESS CARDS */}
+<div style={{ marginBottom: 24 }}>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 10,
+      alignItems: "center",
+    }}
+  >
+    <h3
+      style={{
+        margin: 0,
+        fontSize: 16,
+        fontWeight: 700,
+        color: "#111827",
+      }}
+    >
+      Enrolled courses
+    </h3>
+    <span style={{ fontSize: 12, color: "#6b7280" }}>
+      {enrolledCourses.length} enrolled
+    </span>
+  </div>
+
+  {enrolledCourses.length === 0 ? (
+    <p style={{ fontSize: 13, color: "#6b7280" }}>
+      You haven&apos;t enrolled in any courses yet.
+    </p>
+  ) : (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        gap: 14,
+      }}
+    >
+      {enrolledCourses.map((course) => {
+        const progress = allProgress[course.id] || {};
+        const completedCount = progress.completedLessons?.length || 0;
+
+        // If you later store total lessons in progress (e.g. progress.totalLessons),
+        // this will automatically use it:
+        const totalLessons =
+          progress.totalLessons ||
+          progress.lessonCount ||
+          Math.max(completedCount, 1);
+
+        const percent = Math.min(
+          100,
+          Math.round((completedCount / totalLessons) * 100)
+        );
+
+        return (
           <div
+            key={course.id}
             style={{
+              background: "white",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 6px 18px rgba(15,23,42,0.06)",
               display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 10,
-              alignItems: "center",
+              overflow: "hidden",
             }}
           >
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 16,
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              Enrolled courses
-            </h3>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>
-              {enrolledCourses.length} enrolled
-            </span>
-          </div>
-
-          {enrolledCourses.length === 0 ? (
-            <p style={{ fontSize: 13, color: "#6b7280" }}>
-              You haven&apos;t enrolled in any courses yet.
-            </p>
-          ) : (
+            {/* LEFT: colored strip + play button */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 14,
+                width: 80,
+                minWidth: 80,
+                background:
+                  "linear-gradient(135deg, #6d28d9, #4c1d95)", // purple grad
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
               }}
             >
-              {enrolledCourses.map((course) => (
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "999px",
+                  background: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 10px rgba(15,23,42,0.35)",
+                }}
+              >
                 <div
-                  key={course.id}
                   style={{
-                    background: "white",
-                    borderRadius: 16,
-                    padding: 14,
-                    border: `1px solid ${purpleLight}`,
-                    boxShadow: "0 8px 20px rgba(109,40,217,0.08)",
+                    width: 0,
+                    height: 0,
+                    borderTop: "8px solid transparent",
+                    borderBottom: "8px solid transparent",
+                    borderLeft: "14px solid #6d28d9",
+                    marginLeft: 2,
                   }}
-                >
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginBottom: 4,
-                      color: "#111827",
-                    }}
-                  >
-                    {course.title || "Untitled course"}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#4b5563",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {course.description?.slice(0, 80) || "No description yet."}
-                    {course.description && course.description.length > 80
-                      ? "..."
-                      : ""}
-                  </div>
-
-                  <button
-                    onClick={() => goToCourse(course.id)}
-                    style={{
-                      marginTop: 4,
-                      padding: "8px 12px",
-                      width: "100%",
-                      borderRadius: 999,
-                      border: "1px solid transparent",
-                      background: purple,
-                      color: "white",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Continue course
-                  </button>
-                </div>
-              ))}
+                />
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* ALL COURSES */}
+            {/* RIGHT: course info + progress bar */}
+            <div
+              style={{
+                flex: 1,
+                padding: "10px 14px 8px",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#6b7280",
+                  marginBottom: 2,
+                }}
+              >
+                {course.category || "Course"}
+              </div>
+
+              {/* Title – 2 lines max */}
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "#111827",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {course.title || "Untitled course"}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  color: "#6b7280",
+                }}
+              >
+                Lecture • {completedCount}/{totalLessons} lessons • {percent}%
+                complete
+              </div>
+
+              {/* mini progress bar (like Udemy bottom strip) */}
+              <div
+                style={{
+                  marginTop: 8,
+                  height: 6,
+                  borderRadius: 999,
+                  background: "#e5e7eb",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${percent}%`,
+                    height: "100%",
+                    background: "#6d28d9",
+                  }}
+                />
+              </div>
+
+              {/* Continue button */}
+              <button
+                onClick={() => goToCourse(course.id)}
+                style={{
+                  marginTop: 8,
+                  alignSelf: "flex-start",
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: "none",
+                  background: "#6d28d9",
+                  color: "white",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Continue course
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+
+        {/* ALL COURSES – UDEMY STYLE CARDS */}
         <div>
           <div
             style={{
@@ -512,85 +632,139 @@ function StudentDashboard({ user }) {
           ) : (
             <div
               style={{
-                background: "white",
-                borderRadius: 18,
-                border: "1px solid #e5e7eb",
-                boxShadow: "0 8px 20px rgba(15,23,42,0.04)",
-                padding: 10,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                gap: 20,
               }}
             >
               {courses.map((course) => {
                 const enrolled = !!allProgress[course.id];
+                const imageUrl =
+                  course.imageUrl ||
+                  "https://via.placeholder.com/400x200.png?text=Course";
+
                 return (
                   <div
                     key={course.id}
-                    className="sd-course-row"
                     style={{
+                      background: "white",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      border: "1px solid #e5e7eb",
+                      boxShadow: "0 6px 14px rgba(15,23,42,0.06)",
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 6px",
-                      borderBottom: "1px solid #f3f4f6",
+                      flexDirection: "column",
                     }}
                   >
-                    <div className="sd-course-row-left">
+                    {/* Top: image + badge */}
+                    <div style={{ position: "relative" }}>
+                      <img
+                        src={imageUrl}
+                        alt={course.title}
+                        style={{
+                          width: "100%",
+                          height: 140,
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+
+                      {course.badge && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 8,
+                            left: 8,
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "#4c1d95",
+                            color: "white",
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {course.badge}
+                        </div>
+                      )}
+
+                      {!course.badge && enrolled && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 8,
+                            left: 8,
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "#ecfdf5",
+                            color: "#15803d",
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Enrolled
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <div
+                      style={{
+                        padding: 12,
+                        display: "flex",
+                        flexDirection: "column",
+                        flex: 1,
+                      }}
+                    >
+                      {/* Title – max 2 lines */}
                       <div
                         style={{
-                          fontSize: 14,
-                          fontWeight: 600,
+                          fontSize: 15,
+                          fontWeight: 700,
                           color: "#111827",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          minHeight: 40,
                         }}
                       >
                         {course.title || "Untitled course"}
                       </div>
+
+                      {/* Short description – also 2 lines */}
                       <div
                         style={{
+                          marginTop: 6,
                           fontSize: 12,
                           color: "#6b7280",
-                          maxWidth: 380,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          minHeight: 32,
                         }}
                       >
-                        {course.description?.slice(0, 120) ||
-                          "No description yet."}
-                        {course.description &&
-                        course.description.length > 120
-                          ? "..."
-                          : ""}
+                        {course.description || "No description yet."}
                       </div>
-                    </div>
 
-                    <div
-                      className="sd-course-row-right"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          padding: "3px 10px",
-                          borderRadius: 999,
-                          background: enrolled ? "#ecfdf5" : "#fef9c3",
-                          color: enrolled ? "#15803d" : "#92400e",
-                          border: "1px solid #e5e7eb",
-                        }}
-                      >
-                        {enrolled ? "Enrolled" : "Not started"}
-                      </span>
+                      {/* Button */}
                       <button
-                        onClick={() => goToCourse(course.id)}
+                        onClick={() =>
+                          enrolled
+                            ? goToCourse(course.id)
+                            : handleStartCourse(course.id)
+                        }
                         style={{
-                          padding: "7px 12px",
+                          marginTop: 10,
+                          padding: "8px 12px",
                           borderRadius: 999,
                           border: "none",
-                          fontSize: 12,
-                          fontWeight: 600,
                           background: enrolled ? purple : "#16a34a",
                           color: "white",
+                          fontSize: 13,
+                          fontWeight: 600,
                           cursor: "pointer",
-                          whiteSpace: "nowrap",
+                          alignSelf: "stretch",
                         }}
                       >
                         {enrolled ? "Go to course" : "Start course"}

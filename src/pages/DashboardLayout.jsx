@@ -39,11 +39,55 @@ function DashboardLayout({ children }) {
     whiteSpace: "nowrap",
   };
 
-  const isDashboardActive =
-    location.pathname === dashboardPath ||
-    location.pathname === `${dashboardPath}/`;
-
   const closeMobileNav = () => setMobileNavOpen(false);
+
+  // helper: check if route is active
+  const isActive = (path) => {
+    if (path === dashboardPath) {
+      return (
+        location.pathname === dashboardPath ||
+        location.pathname === `${dashboardPath}/`
+      );
+    }
+    return (
+      location.pathname === path ||
+      location.pathname.startsWith(path + "/")
+    );
+  };
+
+  // all left-menu items (per role)
+  const navItems = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      icon: "▦",
+      path: dashboardPath,
+    },
+    {
+      key: "profile",
+      label: "My Profile",
+      icon: "👤",
+      path: `${dashboardPath}/profile`,
+    },
+    {
+      key: "change-password",
+      label: "Change Password",
+      icon: "🔑",
+      path: `${dashboardPath}/change-password`,
+    },
+    {
+      key: "messages",
+      label: "Messages",
+      icon: "✉️",
+      path: `${dashboardPath}/messages`,
+    },
+    {
+      key: "notifications",
+      label: "Notifications",
+      icon: "🔔",
+      path: `${dashboardPath}/notifications`,
+    },
+  ];
 
   return (
     <div
@@ -116,42 +160,28 @@ function DashboardLayout({ children }) {
 
           {/* Nav items */}
           <nav className="sidebar-nav" style={{ marginTop: 10 }}>
-            <div
-              style={{
-                ...navItemBaseStyle,
-                backgroundColor: isDashboardActive ? "white" : "transparent",
-                color: isDashboardActive ? "#5b21b6" : "white",
-                borderRadius: "0 20px 20px 0",
-                marginRight: 8,
-              }}
-              onClick={() => {
-                navigate(dashboardPath);
-                closeMobileNav();
-              }}
-            >
-              <span style={iconStyle}>▦</span>
-              <span style={textStyle}>Dashboard</span>
-            </div>
-
-            <div style={navItemBaseStyle}>
-              <span style={iconStyle}>🕒</span>
-              <span style={textStyle}>History</span>
-            </div>
-
-            <div style={navItemBaseStyle}>
-              <span style={iconStyle}>🎓</span>
-              <span style={textStyle}>Semester</span>
-            </div>
-
-            <div style={navItemBaseStyle}>
-              <span style={iconStyle}>💳</span>
-              <span style={textStyle}>Payment</span>
-            </div>
-
-            <div style={navItemBaseStyle}>
-              <span style={iconStyle}>🔍</span>
-              <span style={textStyle}>Results</span>
-            </div>
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <div
+                  key={item.key}
+                  style={{
+                    ...navItemBaseStyle,
+                    backgroundColor: active ? "white" : "transparent",
+                    color: active ? "#5b21b6" : "white",
+                    borderRadius: "0 20px 20px 0",
+                    marginRight: 8,
+                  }}
+                  onClick={() => {
+                    navigate(item.path);
+                    closeMobileNav();
+                  }}
+                >
+                  <span style={iconStyle}>{item.icon}</span>
+                  <span style={textStyle}>{item.label}</span>
+                </div>
+              );
+            })}
           </nav>
         </div>
 
@@ -174,7 +204,7 @@ function DashboardLayout({ children }) {
             }}
           >
             <span style={{ fontSize: 16 }}>❓</span>
-            <span>Help</span>
+            <span>Help &amp; Support</span>
           </div>
         </div>
       </aside>

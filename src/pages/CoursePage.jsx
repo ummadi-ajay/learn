@@ -9,6 +9,8 @@ import {
   query,
   orderBy,
   getDocs,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
@@ -21,7 +23,6 @@ function getEmbedUrl(youtubeUrl) {
       return `https://www.youtube-nocookie.com/embed/${v}`;
     }
     if (url.hostname === "youtu.be") {
-      // e.g. https://youtu.be/abcdEFGH
       const id = url.pathname.replace("/", "");
       if (id) {
         return `https://www.youtube-nocookie.com/embed/${id}`;
@@ -70,9 +71,42 @@ function CoursePage({ user }) {
     loadLessons();
   }, [courseId]);
 
-  const handleSelectLesson = (lesson) => {
+  // Ensure progress doc exists when visiting course page (deep link or from dashboard)
+  useEffect(() => {
+    if (!user) return;
+    async function ensureProgress() {
+      const ref = doc(db, "users", user.uid, "progress", courseId);
+      await setDoc(
+        ref,
+        {
+          startedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+    ensureProgress();
+  }, [user, courseId]);
+
+  const handleSelectLesson = async (lesson) => {
     setSelectedLesson(lesson);
     setActiveTab("overview");
+
+    // Update last opened lesson in progress
+    if (user) {
+      try {
+        const ref = doc(db, "users", user.uid, "progress", courseId);
+        await setDoc(
+          ref,
+          {
+            lastOpenedLessonId: lesson.id,
+            startedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.error("Error updating lesson progress:", err);
+      }
+    }
   };
 
   const embedUrl = getEmbedUrl(selectedLesson?.youtubeUrl);
