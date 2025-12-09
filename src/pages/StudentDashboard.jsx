@@ -8,14 +8,39 @@ import {
   doc,
   setDoc,
   serverTimestamp,
+  getDoc, // for profile
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 function StudentDashboard({ user }) {
   const [courses, setCourses] = useState([]);
   const [allProgress, setAllProgress] = useState({});
+  const [profile, setProfile] = useState(null); // Firestore user doc
 
   const navigate = useNavigate();
+
+  // Load profile (name, etc.) from users/{uid}
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProfile = async () => {
+      try {
+        const refUser = doc(db, "users", user.uid);
+        const snap = await getDoc(refUser);
+
+        if (snap.exists()) {
+          setProfile(snap.data());
+        } else {
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+        setProfile(null);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   // Load all courses
   useEffect(() => {
@@ -40,7 +65,12 @@ function StudentDashboard({ user }) {
   const enrolledCourses = courses.filter((c) => allProgress[c.id]);
   const availableCourses = courses.filter((c) => !allProgress[c.id]);
 
-  const displayName = user.displayName || user.email || "Learner";
+  // Prefer Firestore name; fallback to auth displayName or email
+  const displayName =
+    (profile && profile.name && profile.name.trim()) ||
+    user.displayName ||
+    user.email ||
+    "Learner";
 
   const totalCompletedLessons = Object.values(allProgress).reduce(
     (sum, p) => sum + (p.completedLessons?.length || 0),
@@ -148,6 +178,7 @@ function StudentDashboard({ user }) {
               gap: 16,
             }}
           >
+            {/* Avatar with initials (no external photo) */}
             <div
               style={{
                 width: 90,
@@ -188,7 +219,7 @@ function StudentDashboard({ user }) {
                   marginBottom: 10,
                 }}
               >
-                ID: {user.uid.slice(0, 8)} • Email: {user.email}
+                ID: {user.uid.slice(0, 8)}
               </div>
 
               <div
@@ -407,200 +438,197 @@ function StudentDashboard({ user }) {
           </div>
         </div>
 
-       {/* ENROLLED COURSES – UDEMY STYLE PROGRESS CARDS */}
-<div style={{ marginBottom: 24 }}>
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 10,
-      alignItems: "center",
-    }}
-  >
-    <h3
-      style={{
-        margin: 0,
-        fontSize: 16,
-        fontWeight: 700,
-        color: "#111827",
-      }}
-    >
-      Enrolled courses
-    </h3>
-    <span style={{ fontSize: 12, color: "#6b7280" }}>
-      {enrolledCourses.length} enrolled
-    </span>
-  </div>
-
-  {enrolledCourses.length === 0 ? (
-    <p style={{ fontSize: 13, color: "#6b7280" }}>
-      You haven&apos;t enrolled in any courses yet.
-    </p>
-  ) : (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        gap: 14,
-      }}
-    >
-      {enrolledCourses.map((course) => {
-        const progress = allProgress[course.id] || {};
-        const completedCount = progress.completedLessons?.length || 0;
-
-        // If you later store total lessons in progress (e.g. progress.totalLessons),
-        // this will automatically use it:
-        const totalLessons =
-          progress.totalLessons ||
-          progress.lessonCount ||
-          Math.max(completedCount, 1);
-
-        const percent = Math.min(
-          100,
-          Math.round((completedCount / totalLessons) * 100)
-        );
-
-        return (
+        {/* ENROLLED COURSES – UDEMY STYLE PROGRESS CARDS */}
+        <div style={{ marginBottom: 24 }}>
           <div
-            key={course.id}
             style={{
-              background: "white",
-              borderRadius: 12,
-              border: "1px solid #e5e7eb",
-              boxShadow: "0 6px 18px rgba(15,23,42,0.06)",
               display: "flex",
-              overflow: "hidden",
+              justifyContent: "space-between",
+              marginBottom: 10,
+              alignItems: "center",
             }}
           >
-            {/* LEFT: colored strip + play button */}
-            <div
+            <h3
               style={{
-                width: 80,
-                minWidth: 80,
-                background:
-                  "linear-gradient(135deg, #6d28d9, #4c1d95)", // purple grad
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
+                margin: 0,
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#111827",
               }}
             >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "999px",
-                  background: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 10px rgba(15,23,42,0.35)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderTop: "8px solid transparent",
-                    borderBottom: "8px solid transparent",
-                    borderLeft: "14px solid #6d28d9",
-                    marginLeft: 2,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* RIGHT: course info + progress bar */}
-            <div
-              style={{
-                flex: 1,
-                padding: "10px 14px 8px",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  marginBottom: 2,
-                }}
-              >
-                {course.category || "Course"}
-              </div>
-
-              {/* Title – 2 lines max */}
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#111827",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {course.title || "Untitled course"}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 12,
-                  color: "#6b7280",
-                }}
-              >
-                Lecture • {completedCount}/{totalLessons} lessons • {percent}%
-                complete
-              </div>
-
-              {/* mini progress bar (like Udemy bottom strip) */}
-              <div
-                style={{
-                  marginTop: 8,
-                  height: 6,
-                  borderRadius: 999,
-                  background: "#e5e7eb",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${percent}%`,
-                    height: "100%",
-                    background: "#6d28d9",
-                  }}
-                />
-              </div>
-
-              {/* Continue button */}
-              <button
-                onClick={() => goToCourse(course.id)}
-                style={{
-                  marginTop: 8,
-                  alignSelf: "flex-start",
-                  padding: "6px 12px",
-                  borderRadius: 999,
-                  border: "none",
-                  background: "#6d28d9",
-                  color: "white",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Continue course
-              </button>
-            </div>
+              Enrolled courses
+            </h3>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>
+              {enrolledCourses.length} enrolled
+            </span>
           </div>
-        );
-      })}
-    </div>
-  )}
-</div>
 
+          {enrolledCourses.length === 0 ? (
+            <p style={{ fontSize: 13, color: "#6b7280" }}>
+              You haven&apos;t enrolled in any courses yet.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {enrolledCourses.map((course) => {
+                const progress = allProgress[course.id] || {};
+                const completedCount = progress.completedLessons?.length || 0;
+
+                const totalLessons =
+                  progress.totalLessons ||
+                  progress.lessonCount ||
+                  Math.max(completedCount, 1);
+
+                const percent = Math.min(
+                  100,
+                  Math.round((completedCount / totalLessons) * 100)
+                );
+
+                return (
+                  <div
+                    key={course.id}
+                    style={{
+                      background: "white",
+                      borderRadius: 12,
+                      border: "1px solid #e5e7eb",
+                      boxShadow: "0 6px 18px rgba(15,23,42,0.06)",
+                      display: "flex",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* LEFT: colored strip + play button */}
+                    <div
+                      style={{
+                        width: 80,
+                        minWidth: 80,
+                        background:
+                          "linear-gradient(135deg, #6d28d9, #4c1d95)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        position: "relative",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "999px",
+                          background: "white",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 4px 10px rgba(15,23,42,0.35)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 0,
+                            height: 0,
+                            borderTop: "8px solid transparent",
+                            borderBottom: "8px solid transparent",
+                            borderLeft: "14px solid #6d28d9",
+                            marginLeft: 2,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* RIGHT: course info + progress bar */}
+                    <div
+                      style={{
+                        flex: 1,
+                        padding: "10px 14px 8px",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#6b7280",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {course.category || "Course"}
+                      </div>
+
+                      {/* Title – 2 lines max */}
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: "#111827",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {course.title || "Untitled course"}
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          color: "#6b7280",
+                        }}
+                      >
+                        Lecture • {completedCount}/{totalLessons} lessons •{" "}
+                        {percent}% complete
+                      </div>
+
+                      {/* mini progress bar */}
+                      <div
+                        style={{
+                          marginTop: 8,
+                          height: 6,
+                          borderRadius: 999,
+                          background: "#e5e7eb",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${percent}%`,
+                            height: "100%",
+                            background: "#6d28d9",
+                          }}
+                        />
+                      </div>
+
+                      {/* Continue button */}
+                      <button
+                        onClick={() => goToCourse(course.id)}
+                        style={{
+                          marginTop: 8,
+                          alignSelf: "flex-start",
+                          padding: "6px 12px",
+                          borderRadius: 999,
+                          border: "none",
+                          background: "#6d28d9",
+                          color: "white",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Continue course
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ALL COURSES – UDEMY STYLE CARDS */}
         <div>
@@ -639,9 +667,7 @@ function StudentDashboard({ user }) {
             >
               {courses.map((course) => {
                 const enrolled = !!allProgress[course.id];
-                const imageUrl =
-                  course.imageUrl ||
-                  "https://via.placeholder.com/400x200.png?text=Course";
+                const imageUrl = course.imageUrl || "";
 
                 return (
                   <div
@@ -658,16 +684,35 @@ function StudentDashboard({ user }) {
                   >
                     {/* Top: image + badge */}
                     <div style={{ position: "relative" }}>
-                      <img
-                        src={imageUrl}
-                        alt={course.title}
-                        style={{
-                          width: "100%",
-                          height: 140,
-                          objectFit: "cover",
-                          display: "block",
-                        }}
-                      />
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={course.title}
+                          style={{
+                            width: "100%",
+                            height: 140,
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 140,
+                            background:
+                              "linear-gradient(135deg, #e5e7eb, #d1d5db)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            color: "#4b5563",
+                            fontWeight: 500,
+                          }}
+                        >
+                          No image
+                        </div>
+                      )}
 
                       {course.badge && (
                         <div

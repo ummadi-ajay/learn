@@ -103,19 +103,6 @@ function LoginPage() {
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
-
-          <div
-            style={{
-              marginTop: 10,
-              fontSize: 12,
-            }}
-          >
-            Don&apos;t have an account?{" "}
-            <Link to="/signup" className="auth-link-small">
-              Sign up
-            </Link>
-          </div>
-
           {message && (
             <p className="auth-message error" style={{ marginTop: 8 }}>
               {message}
