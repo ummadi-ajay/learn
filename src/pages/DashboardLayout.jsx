@@ -1,15 +1,71 @@
 // src/pages/DashboardLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase/firebase";
+
+const THEME_KEYS = ["light", "dark", "green", "orange"];
+
+const themeConfig = {
+  light: {
+    background: "#f3f4f6",
+    surface: "#ffffff",
+    surfaceSoft: "#f9fafb",
+    primary: "#2563eb",
+    primarySoft: "#dbeafe",
+    textMain: "#111827",
+    textMuted: "#6b7280",
+    border: "#e5e7eb",
+  },
+  dark: {
+    background: "#020617",
+    surface: "#020617",
+    surfaceSoft: "#0f172a",
+    primary: "#38bdf8",
+    primarySoft: "#082f49",
+    textMain: "#e5e7eb",
+    textMuted: "#9ca3af",
+    border: "#1f2937",
+  },
+  green: {
+    background: "#ecfdf5",
+    surface: "#ffffff",
+    surfaceSoft: "#f0fdf4",
+    primary: "#16a34a",
+    primarySoft: "#dcfce7",
+    textMain: "#022c22",
+    textMuted: "#047857",
+    border: "#bbf7d0",
+  },
+  orange: {
+    background: "#fff7ed",
+    surface: "#ffffff",
+    surfaceSoft: "#fff7ed",
+    primary: "#f97316",
+    primarySoft: "#ffedd5",
+    textMain: "#7c2d12",
+    textMuted: "#9a3412",
+    border: "#fed7aa",
+  },
+};
 
 function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [theme, setTheme] = useState("light");
 
   const isInstructor = location.pathname.startsWith("/instructor");
   const dashboardPath = isInstructor ? "/instructor" : "/student";
+
+  // load theme from localStorage (same key as StudentDashboard)
+  useEffect(() => {
+    const saved = localStorage.getItem("makerworks-theme");
+    if (saved && THEME_KEYS.includes(saved)) {
+      setTheme(saved);
+    }
+  }, []);
+
+  const t = themeConfig[theme] || themeConfig.light;
 
   const handleLogout = async () => {
     try {
@@ -93,10 +149,14 @@ function DashboardLayout({ children }) {
     <div
       className="layout-root"
       style={{
+        // FULL SCREEN + STICKY SHELL
+        position: "fixed",
+        inset: 0,
         display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        background: t.background,
+        fontFamily:
+          "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        overflow: "hidden", // prevent page scroll, only content scrolls
       }}
     >
       {/* Backdrop (for mobile) */}
@@ -113,14 +173,14 @@ function DashboardLayout({ children }) {
         />
       )}
 
-      {/* LEFT PURPLE SIDEBAR */}
+      {/* LEFT SIDEBAR – themed by primary color */}
       <aside
         className={`layout-sidebar ${
           mobileNavOpen ? "sidebar-open" : "sidebar-closed"
         }`}
         style={{
           width: 220,
-          background: "#5b21b6",
+          background: t.primary,
           color: "white",
           display: "flex",
           flexDirection: "column",
@@ -136,7 +196,7 @@ function DashboardLayout({ children }) {
               padding: "18px 12px 14px",
               display: "flex",
               justifyContent: "center",
-              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              borderBottom: "1px solid rgba(255,255,255,0.12)",
             }}
           >
             <div
@@ -150,7 +210,7 @@ function DashboardLayout({ children }) {
                 justifyContent: "center",
                 fontWeight: 700,
                 fontSize: 18,
-                color: "#5b21b6",
+                color: t.primary,
                 boxShadow: "0 4px 10px rgba(0,0,0,0.18)",
               }}
             >
@@ -168,7 +228,7 @@ function DashboardLayout({ children }) {
                   style={{
                     ...navItemBaseStyle,
                     backgroundColor: active ? "white" : "transparent",
-                    color: active ? "#5b21b6" : "white",
+                    color: active ? t.primary : "white",
                     borderRadius: "0 20px 20px 0",
                     marginRight: 8,
                   }}
@@ -190,7 +250,7 @@ function DashboardLayout({ children }) {
           className="sidebar-help"
           style={{
             padding: 12,
-            borderTop: "1px solid rgba(255,255,255,0.12)",
+            borderTop: "1px solid rgba(255,255,255,0.18)",
           }}
         >
           <div
@@ -199,7 +259,7 @@ function DashboardLayout({ children }) {
               padding: "8px 10px",
               justifyContent: "center",
               borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.6)",
+              border: "1px solid rgba(255,255,255,0.7)",
               fontSize: 13,
             }}
           >
@@ -212,18 +272,24 @@ function DashboardLayout({ children }) {
       {/* RIGHT MAIN AREA */}
       <div
         className="layout-main"
-        style={{ flex: 1, display: "flex", flexDirection: "column" }}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          background: t.background,
+        }}
       >
         <header
           className="layout-topbar"
           style={{
             height: 56,
-            background: "white",
-            borderBottom: "1px solid #e5e7eb",
+            background: t.surface,
+            borderBottom: `1px solid ${t.border}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 16px",
+            flexShrink: 0,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -236,8 +302,8 @@ function DashboardLayout({ children }) {
                 width: 34,
                 height: 34,
                 borderRadius: 999,
-                border: "1px solid #e5e7eb",
-                background: "white",
+                border: `1px solid ${t.border}`,
+                background: t.surface,
                 display: "none", // overridden by CSS on mobile
                 alignItems: "center",
                 justifyContent: "center",
@@ -249,9 +315,9 @@ function DashboardLayout({ children }) {
                 style={{
                   width: 16,
                   height: 2,
-                  background: "#111827",
+                  background: t.textMain,
                   display: "block",
-                  boxShadow: "0 5px 0 #111827, 0 -5px 0 #111827",
+                  boxShadow: `0 5px 0 ${t.textMain}, 0 -5px 0 ${t.textMain}`,
                 }}
               ></span>
             </button>
@@ -260,7 +326,7 @@ function DashboardLayout({ children }) {
               style={{
                 fontSize: 16,
                 fontWeight: 600,
-                color: "#111827",
+                color: t.textMain,
               }}
             >
               {isInstructor ? "Instructor Panel" : "Student Panel"}
@@ -273,8 +339,9 @@ function DashboardLayout({ children }) {
               padding: "6px 12px",
               fontSize: 13,
               borderRadius: 999,
-              border: "1px solid #e5e7eb",
-              background: "#f9fafb",
+              border: `1px solid ${t.border}`,
+              background: t.surfaceSoft,
+              color: t.textMain,
               cursor: "pointer",
             }}
           >
@@ -282,9 +349,15 @@ function DashboardLayout({ children }) {
           </button>
         </header>
 
+        {/* SCROLLABLE CONTENT ONLY HERE */}
         <main
           className="layout-content"
-          style={{ flex: 1, padding: 16, overflow: "auto" }}
+          style={{
+            flex: 1,
+            padding: 16,
+            overflow: "auto",
+            background: t.background,
+          }}
         >
           {children}
         </main>
