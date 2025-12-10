@@ -6,8 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import "./index.css";
 
 import LoginPage from "./pages/LoginPage.jsx";
-// ❌ remove SignupPage import
-// import SignupPage from "./pages/SignupPage.jsx";
+import PublicNewsPage from "./pages/PublicNewsPage.jsx";
 
 import StudentDashboard from "./pages/StudentDashboard.jsx";
 import InstructorDashboard from "./pages/InstructorDashboard.jsx";
@@ -15,7 +14,6 @@ import CoursePage from "./pages/CoursePage.jsx";
 import LessonPage from "./pages/LessonPage.jsx";
 import DashboardLayout from "./pages/DashboardLayout.jsx";
 
-// NEW: pages for sidebar
 import MessagesPage from "./pages/MessagesPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
@@ -49,6 +47,10 @@ function App() {
 
   return (
     <Routes>
+      {/* ✅ PUBLIC NEWS PAGE – NO LOGIN REQUIRED */}
+      <Route path="/news" element={<PublicNewsPage />} />
+      <Route path="/test" element={<div>PUBLIC TEST</div>} />
+
       {/* Root: decide based on login + role */}
       <Route
         path="/"
@@ -64,18 +66,13 @@ function App() {
         }
       />
 
-      {/* Auth pages */}
+      {/* Login */}
       <Route
         path="/login"
         element={user ? <Navigate to="/" replace /> : <LoginPage />}
       />
-      {/* ❌ remove /signup route */}
-      {/* <Route
-        path="/signup"
-        element={user ? <Navigate to="/" replace /> : <SignupPage />}
-      /> */}
 
-      {/* Student main dashboard */}
+      {/* ===== STUDENT ROUTES ===== */}
       <Route
         path="/student"
         element={
@@ -91,7 +88,6 @@ function App() {
         }
       />
 
-      {/* Student: profile */}
       <Route
         path="/student/profile"
         element={
@@ -107,7 +103,6 @@ function App() {
         }
       />
 
-      {/* Student: change password */}
       <Route
         path="/student/change-password"
         element={
@@ -123,7 +118,6 @@ function App() {
         }
       />
 
-      {/* Student: messages (global chat) */}
       <Route
         path="/student/messages"
         element={
@@ -139,7 +133,6 @@ function App() {
         }
       />
 
-      {/* Student: notifications */}
       <Route
         path="/student/notifications"
         element={
@@ -155,7 +148,6 @@ function App() {
         }
       />
 
-      {/* Student: course view */}
       <Route
         path="/courses/:courseId"
         element={
@@ -171,7 +163,6 @@ function App() {
         }
       />
 
-      {/* Student: lesson view */}
       <Route
         path="/courses/:courseId/lessons/:lessonId"
         element={
@@ -187,7 +178,7 @@ function App() {
         }
       />
 
-      {/* Instructor dashboard */}
+      {/* ===== INSTRUCTOR ROUTES ===== */}
       <Route
         path="/instructor"
         element={
@@ -203,7 +194,6 @@ function App() {
         }
       />
 
-      {/* Instructor: same subpages if you want */}
       <Route
         path="/instructor/profile"
         element={
@@ -218,6 +208,7 @@ function App() {
           )
         }
       />
+
       <Route
         path="/instructor/change-password"
         element={
@@ -232,6 +223,7 @@ function App() {
           )
         }
       />
+
       <Route
         path="/instructor/messages"
         element={
@@ -246,6 +238,7 @@ function App() {
           )
         }
       />
+
       <Route
         path="/instructor/notifications"
         element={

@@ -14,17 +14,21 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  increment, // NEW
+  writeBatch, // NEW (for notifications)
 } from "firebase/firestore";
 
 function InstructorDashboard({ user }) {
   const [courses, setCourses] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [courseImageUrl, setCourseImageUrl] = useState(""); // NEW
 
   // Edit Course
   const [editingCourseId, setEditingCourseId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState(""); // NEW
 
   // Lessons
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -63,6 +67,19 @@ function InstructorDashboard({ user }) {
   // Analytics
   const [analyticsCourse, setAnalyticsCourse] = useState(null);
   const [studentsProgress, setStudentsProgress] = useState([]);
+
+  // Notifications (instructor → students)
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifBody, setNotifBody] = useState("");
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifStatus, setNotifStatus] = useState(null); // 'ok' | 'error' | 'missing'
+
+  // Newsletters
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsBody, setNewsBody] = useState("");
+  const [newsSending, setNewsSending] = useState(false);
+  const [newsStatus, setNewsStatus] = useState(null); // 'ok' | 'error' | 'missing'
+  const [newsList, setNewsList] = useState([]); // list of newsletters
 
   const purple = "#6d28d9";
   const purpleLight = "#f5f3ff";
@@ -110,6 +127,20 @@ function InstructorDashboard({ user }) {
     });
   }, [activeCourseId, editingLessonId]);
 
+  // =============== LOAD NEWSLETTERS ===============
+  useEffect(() => {
+    const q = query(
+      collection(db, "newsletters"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setNewsList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsub();
+  }, []);
+
   // =============== SELECT COURSE ===============
   const handleSelectCourse = (course) => {
     setActiveCourseId(course.id);
@@ -150,19 +181,23 @@ function InstructorDashboard({ user }) {
     await addDoc(collection(db, "courses"), {
       title: title.trim(),
       description: description.trim(),
+      imageUrl: courseImageUrl.trim() || null,
       createdBy: user.uid,
       createdByEmail: user.email,
+      lessonCount: 0, // start at 0 lessons
       createdAt: serverTimestamp(),
     });
 
     setTitle("");
     setDescription("");
+    setCourseImageUrl("");
   };
 
   const startEditCourse = (course) => {
     setEditingCourseId(course.id);
     setEditTitle(course.title);
     setEditDescription(course.description || "");
+    setEditImageUrl(course.imageUrl || "");
   };
 
   const handleUpdateCourse = async (e) => {
@@ -172,11 +207,13 @@ function InstructorDashboard({ user }) {
     await updateDoc(doc(db, "courses", editingCourseId), {
       title: editTitle.trim(),
       description: editDescription.trim(),
+      imageUrl: editImageUrl.trim() || null,
     });
 
     setEditingCourseId(null);
     setEditTitle("");
     setEditDescription("");
+    setEditImageUrl("");
   };
 
   const handleDeleteCourse = async (id) => {
@@ -209,6 +246,11 @@ function InstructorDashboard({ user }) {
       imageUrls: imageArray,
       duration: lessonDuration.trim() || null,
       createdAt: serverTimestamp(),
+    });
+
+    // increment lessonCount on course
+    await updateDoc(doc(db, "courses", activeCourseId), {
+      lessonCount: increment(1),
     });
 
     setLessonTitle("");
@@ -263,6 +305,12 @@ function InstructorDashboard({ user }) {
   const handleDeleteLesson = async (id) => {
     if (!activeCourseId) return;
     await deleteDoc(doc(db, "courses", activeCourseId, "lessons", id));
+
+    // decrement lessonCount on course
+    await updateDoc(doc(db, "courses", activeCourseId), {
+      lessonCount: increment(-1),
+    });
+
     if (editingLessonId === id) setEditingLessonId(null);
   };
 
@@ -363,6 +411,50 @@ function InstructorDashboard({ user }) {
     }
 
     setStudentsProgress(list);
+  };
+
+  // =============== NOTIFICATIONS (instructor → students) ===============
+  const handleSendNotificationAll = async (e) => {
+    e.preventDefault();
+    setNotifStatus(null);
+
+    if (!notifTitle.trim() || !notifBody.trim()) {
+      setNotifStatus("missing");
+      return;
+    }
+
+    setNotifSending(true);
+
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      const batch = writeBatch(db);
+
+      usersSnap.forEach((uDoc) => {
+        const data = uDoc.data();
+        if (data.role === "student") {
+          const notifRef = doc(
+            collection(db, "users", uDoc.id, "notifications")
+          );
+          batch.set(notifRef, {
+            title: notifTitle.trim(),
+            body: notifBody.trim(),
+            createdAt: serverTimestamp(),
+            read: false,
+            from: user.email || user.uid,
+          });
+        }
+      });
+
+      await batch.commit();
+      setNotifStatus("ok");
+      setNotifTitle("");
+      setNotifBody("");
+    } catch (err) {
+      console.error("Error sending notifications:", err);
+      setNotifStatus("error");
+    }
+
+    setNotifSending(false);
   };
 
   // =============== UI ===============
@@ -478,6 +570,20 @@ function InstructorDashboard({ user }) {
                     resize: "vertical",
                   }}
                 />
+                <input
+                  placeholder="Course image URL (optional)"
+                  value={courseImageUrl}
+                  onChange={(e) => setCourseImageUrl(e.target.value)}
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
                 <button
                   type="submit"
                   style={{
@@ -567,6 +673,18 @@ function InstructorDashboard({ user }) {
                       >
                         {c.description || "No description."}
                       </div>
+                      {typeof c.lessonCount === "number" && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#9ca3af",
+                            marginTop: 2,
+                          }}
+                        >
+                          {c.lessonCount} lesson
+                          {c.lessonCount === 1 ? "" : "s"}
+                        </div>
+                      )}
                       <div
                         style={{
                           marginTop: 8,
@@ -679,6 +797,20 @@ function InstructorDashboard({ user }) {
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       rows={3}
+                      style={{
+                        display: "block",
+                        marginBottom: 8,
+                        width: "100%",
+                        padding: "7px 9px",
+                        borderRadius: 10,
+                        border: "1px solid #e5e7eb",
+                        fontSize: 13,
+                      }}
+                    />
+                    <input
+                      placeholder="Course image URL (optional)"
+                      value={editImageUrl}
+                      onChange={(e) => setEditImageUrl(e.target.value)}
                       style={{
                         display: "block",
                         marginBottom: 8,
@@ -819,6 +951,281 @@ function InstructorDashboard({ user }) {
                 </button>
               </section>
             )}
+
+            {/* Notifications to students */}
+            <section
+              style={{
+                background: "white",
+                borderRadius: 18,
+                padding: 14,
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 8px 20px rgba(15,23,42,0.04)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: "#111827",
+                  marginBottom: 8,
+                }}
+              >
+                Send notification to all students
+              </h3>
+              <form onSubmit={handleSendNotificationAll}>
+                <input
+                  placeholder="Notification title"
+                  value={notifTitle}
+                  onChange={(e) => setNotifTitle(e.target.value)}
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    width: "100%",
+                    padding: "7px 9px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
+                <textarea
+                  placeholder="Message body"
+                  value={notifBody}
+                  onChange={(e) => setNotifBody(e.target.value)}
+                  rows={3}
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    width: "100%",
+                    padding: "7px 9px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={notifSending}
+                  style={{
+                    padding: "7px 12px",
+                    borderRadius: 999,
+                    border: "none",
+                    background: notifSending ? "#9ca3af" : "#5b21b6",
+                    color: "white",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: notifSending ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {notifSending ? "Sending..." : "Send to all students"}
+                </button>
+              </form>
+
+              {notifStatus === "missing" && (
+                <p style={{ fontSize: 12, color: "#b91c1c", marginTop: 6 }}>
+                  Please fill both title and message.
+                </p>
+              )}
+              {notifStatus === "ok" && (
+                <p style={{ fontSize: 12, color: "#16a34a", marginTop: 6 }}>
+                  Notification sent to all students.
+                </p>
+              )}
+              {notifStatus === "error" && (
+                <p style={{ fontSize: 12, color: "#b91c1c", marginTop: 6 }}>
+                  Something went wrong while sending.
+                </p>
+              )}
+            </section>
+
+            {/* Newsletters section */}
+            <section
+              style={{
+                background: "white",
+                borderRadius: 18,
+                padding: 14,
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 8px 20px rgba(15,23,42,0.04)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: "#111827",
+                  marginBottom: 8,
+                }}
+              >
+                Write newsletter / announcement (visible to everyone)
+              </h3>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setNewsStatus(null);
+
+                  if (!newsTitle.trim() || !newsBody.trim()) {
+                    setNewsStatus("missing");
+                    return;
+                  }
+
+                  setNewsSending(true);
+                  try {
+                    await addDoc(collection(db, "newsletters"), {
+                      title: newsTitle.trim(),
+                      content: newsBody.trim(), // use "content"
+                      createdAt: serverTimestamp(),
+                      authorId: user.uid,
+                      authorEmail: user.email,
+                    });
+                    setNewsTitle("");
+                    setNewsBody("");
+                    setNewsStatus("ok");
+                  } catch (err) {
+                    console.error("Newsletter error:", err);
+                    setNewsStatus("error");
+                  }
+                  setNewsSending(false);
+                }}
+              >
+                <input
+                  placeholder="Title"
+                  value={newsTitle}
+                  onChange={(e) => setNewsTitle(e.target.value)}
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    width: "100%",
+                    padding: "7px 9px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
+                <textarea
+                  placeholder="Newsletter / announcement content"
+                  value={newsBody}
+                  onChange={(e) => setNewsBody(e.target.value)}
+                  rows={3}
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    width: "100%",
+                    padding: "7px 9px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={newsSending}
+                  style={{
+                    padding: "7px 12px",
+                    borderRadius: 999,
+                    border: "none",
+                    background: newsSending ? "#9ca3af" : "#6d28d9",
+                    color: "white",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: newsSending ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {newsSending ? "Publishing..." : "Publish newsletter"}
+                </button>
+              </form>
+
+              {newsStatus === "missing" && (
+                <p style={{ fontSize: 12, color: "#b91c1c", marginTop: 6 }}>
+                  Please fill both title and content.
+                </p>
+              )}
+              {newsStatus === "ok" && (
+                <p style={{ fontSize: 12, color: "#16a34a", marginTop: 6 }}>
+                  Newsletter published.
+                </p>
+              )}
+              {newsStatus === "error" && (
+                <p style={{ fontSize: 12, color: "#b91c1c", marginTop: 6 }}>
+                  Something went wrong.
+                </p>
+              )}
+
+              <hr
+                style={{
+                  margin: "14px 0 10px",
+                  border: "none",
+                  borderTop: "1px solid #e5e7eb",
+                }}
+              />
+
+              <h4
+                style={{
+                  margin: "0 0 8px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+              >
+                Recent newsletters
+              </h4>
+
+              {newsList.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
+                  No newsletters yet.
+                </p>
+              ) : (
+                newsList.map((n) => {
+                  const text = n.content || n.body || n.message || "";
+                  const date =
+                    n.createdAt && n.createdAt.toDate
+                      ? n.createdAt.toDate().toLocaleString()
+                      : "Recently";
+
+                  return (
+                    <div
+                      key={n.id}
+                      style={{
+                        padding: 8,
+                        borderRadius: 10,
+                        border: "1px solid #e5e7eb",
+                        marginBottom: 8,
+                        background: "#f9fafb",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          marginBottom: 2,
+                          color: "#111827",
+                        }}
+                      >
+                        {n.title || "Untitled"}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "#4b5563",
+                          whiteSpace: "pre-wrap",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {text}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#9ca3af",
+                        }}
+                      >
+                        {date} • {n.authorEmail || "Instructor"}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </section>
           </div>
 
           {/* RIGHT COLUMN: lessons + quizzes */}
@@ -1183,9 +1590,7 @@ function InstructorDashboard({ user }) {
 
                       <textarea
                         value={editLessonImageUrls}
-                        onChange={(e) =>
-                          setEditLessonImageUrls(e.target.value)
-                        }
+                        onChange={(e) => setEditLessonImageUrls(e.target.value)}
                         rows={2}
                         style={{
                           display: "block",
@@ -1233,7 +1638,7 @@ function InstructorDashboard({ user }) {
                       </button>
                     </form>
 
-                    {/* Quiz section (same as before) */}
+                    {/* Quiz section */}
                     <h4
                       style={{
                         margin: "16px 0 8px",

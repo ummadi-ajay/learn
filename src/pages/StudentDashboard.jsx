@@ -482,6 +482,7 @@ function StudentDashboard({ user }) {
                 const totalLessons =
                   progress.totalLessons ||
                   progress.lessonCount ||
+                
                   Math.max(completedCount, 1);
 
                 const percent = Math.min(
