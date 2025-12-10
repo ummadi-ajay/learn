@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { auth, db } from "./firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // ⬅️ setDoc added
 import "./index.css";
+
+import AdminPage from "./pages/AdminPage.jsx";
 
 import LoginPage from "./pages/LoginPage.jsx";
 import PublicNewsPage from "./pages/PublicNewsPage.jsx";
@@ -26,16 +28,45 @@ function App() {
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const refUser = doc(db, "users", firebaseUser.uid);
-        const snap = await getDoc(refUser);
-        setUserRole(snap.exists() ? snap.data().role : null);
-      } else {
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+
+          const refUser = doc(db, "users", firebaseUser.uid);
+          const snap = await getDoc(refUser);
+
+          let role = "student"; // default
+
+          if (!snap.exists()) {
+            // first time this account is seen – create a Firestore user doc
+            await setDoc(
+              refUser,
+              {
+                email: firebaseUser.email || "",
+                role, // "student" by default
+                name: "",
+                avatarPath: null,
+                createdAt: new Date(),
+              },
+              { merge: true }
+            );
+          } else {
+            const data = snap.data();
+            if (data.role) role = data.role;
+          }
+
+          setUserRole(role);
+        } else {
+          setUser(null);
+          setUserRole(null);
+        }
+      } catch (err) {
+        console.error("Error in auth state listener:", err);
         setUser(null);
         setUserRole(null);
+      } finally {
+        setLoadingUser(false);
       }
-      setLoadingUser(false);
     });
 
     return () => unsub();
@@ -47,26 +78,43 @@ function App() {
 
   return (
     <Routes>
-      {/* ✅ PUBLIC NEWS PAGE – NO LOGIN REQUIRED */}
+      {/* PUBLIC PAGES (no login) */}
       <Route path="/news" element={<PublicNewsPage />} />
       <Route path="/test" element={<div>PUBLIC TEST</div>} />
 
-      {/* Root: decide based on login + role */}
+      {/* ROOT – send based on role */}
       <Route
         path="/"
         element={
-          user ? (
-            <Navigate
-              to={userRole === "instructor" ? "/instructor" : "/student"}
-              replace
-            />
-          ) : (
+          !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
+          ) : userRole === "instructor" ? (
+            <Navigate to="/instructor" replace />
+          ) : (
+            <Navigate to="/student" replace />
           )
         }
       />
 
-      {/* Login */}
+      {/* ADMIN – only role 'admin' */}
+      <Route
+        path="/admin"
+        element={
+          !user ? (
+            <Navigate to="/login" replace />
+          ) : userRole !== "admin" ? (
+            <Navigate to="/" replace />
+          ) : (
+            <DashboardLayout>
+              <AdminPage user={user} />
+            </DashboardLayout>
+          )
+        }
+      />
+
+      {/* LOGIN */}
       <Route
         path="/login"
         element={user ? <Navigate to="/" replace /> : <LoginPage />}
@@ -78,6 +126,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -93,6 +143,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -108,6 +160,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -123,6 +177,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -138,6 +194,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -153,6 +211,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -168,6 +228,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "student" ? (
             <Navigate to="/instructor" replace />
           ) : (
@@ -184,6 +246,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "instructor" ? (
             <Navigate to="/student" replace />
           ) : (
@@ -199,6 +263,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "instructor" ? (
             <Navigate to="/student" replace />
           ) : (
@@ -214,6 +280,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "instructor" ? (
             <Navigate to="/student" replace />
           ) : (
@@ -229,6 +297,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "instructor" ? (
             <Navigate to="/student" replace />
           ) : (
@@ -244,6 +314,8 @@ function App() {
         element={
           !user ? (
             <Navigate to="/login" replace />
+          ) : userRole === "admin" ? (
+            <Navigate to="/admin" replace />
           ) : userRole !== "instructor" ? (
             <Navigate to="/student" replace />
           ) : (
@@ -254,7 +326,7 @@ function App() {
         }
       />
 
-      {/* Fallback */}
+      {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

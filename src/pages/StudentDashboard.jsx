@@ -1,3 +1,4 @@
+// src/pages/StudentDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/firebase";
 import {
@@ -8,7 +9,7 @@ import {
   doc,
   setDoc,
   serverTimestamp,
-  getDoc, // for profile
+  getDoc,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
@@ -16,8 +17,21 @@ function StudentDashboard({ user }) {
   const [courses, setCourses] = useState([]);
   const [allProgress, setAllProgress] = useState({});
   const [profile, setProfile] = useState(null); // Firestore user doc
+  const [avatarError, setAvatarError] = useState(false);
 
   const navigate = useNavigate();
+
+  // helper: resolves /images/... into correct URL for /learn/ base
+  const resolveStaticPath = (path) => {
+    if (!path) return "";
+    // absolute URLs (https://...) – use as-is
+    if (/^https?:\/\//.test(path)) return path;
+
+    const base = import.meta.env.BASE_URL || "/";
+    const cleanBase = base.endsWith("/") ? base.slice(0, -1) : base;
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    return cleanBase + cleanPath;
+  };
 
   // Load profile (name, etc.) from users/{uid}
   useEffect(() => {
@@ -72,6 +86,16 @@ function StudentDashboard({ user }) {
     user.email ||
     "Learner";
 
+  // ⭐ custom student ID from Firestore (set in AdminPage)
+  const studentId =
+    profile && typeof profile.studentId === "string"
+      ? profile.studentId.trim() || null
+      : null;
+
+  // avatarPath from Firestore (set by AdminPage)
+  const avatarPath = profile?.avatarPath || "";
+  const avatarUrl = avatarPath ? resolveStaticPath(avatarPath) : "";
+
   const totalCompletedLessons = Object.values(allProgress).reduce(
     (sum, p) => sum + (p.completedLessons?.length || 0),
     0
@@ -103,6 +127,13 @@ function StudentDashboard({ user }) {
 
   const purple = "#6d28d9";
   const purpleLight = "#f5f3ff";
+
+  // initials fallback
+  const initials = displayName
+    .split(" ")
+    .map((p) => p[0]?.toUpperCase())
+    .join("")
+    .slice(0, 2);
 
   return (
     <div
@@ -178,13 +209,14 @@ function StudentDashboard({ user }) {
               gap: 16,
             }}
           >
-            {/* Avatar with initials (no external photo) */}
+            {/* Avatar: image if avatarPath set, else initials */}
             <div
               style={{
                 width: 90,
                 minWidth: 90,
                 height: 90,
                 borderRadius: 18,
+                overflow: "hidden",
                 background: "linear-gradient(135deg, #a855f7, #4c1d95)",
                 display: "flex",
                 alignItems: "center",
@@ -194,11 +226,20 @@ function StudentDashboard({ user }) {
                 fontWeight: 700,
               }}
             >
-              {displayName
-                .split(" ")
-                .map((p) => p[0]?.toUpperCase())
-                .join("")
-                .slice(0, 2)}
+              {avatarUrl && !avatarError ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                initials
+              )}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -219,7 +260,9 @@ function StudentDashboard({ user }) {
                   marginBottom: 10,
                 }}
               >
-                ID: {user.uid.slice(0, 8)}
+                {studentId
+                  ? `Student ID: ${studentId}`
+                  : `ID: ${user.uid.slice(0, 8)}`}
               </div>
 
               <div
@@ -423,8 +466,7 @@ function StudentDashboard({ user }) {
                         courses.length === 0
                           ? "0%"
                           : `${Math.min(
-                              (availableCourses.length / courses.length) *
-                                100,
+                              (availableCourses.length / courses.length) * 100,
                               100
                             ).toFixed(0)}%`,
                       height: "100%",
@@ -482,7 +524,6 @@ function StudentDashboard({ user }) {
                 const totalLessons =
                   progress.totalLessons ||
                   progress.lessonCount ||
-                
                   Math.max(completedCount, 1);
 
                 const percent = Math.min(
@@ -668,7 +709,8 @@ function StudentDashboard({ user }) {
             >
               {courses.map((course) => {
                 const enrolled = !!allProgress[course.id];
-                const imageUrl = course.imageUrl || "";
+                const rawImage = course.imageUrl || "";
+                const imageUrl = rawImage ? resolveStaticPath(rawImage) : "";
 
                 return (
                   <div
@@ -694,6 +736,20 @@ function StudentDashboard({ user }) {
                             height: 140,
                             objectFit: "cover",
                             display: "block",
+                          }}
+                          onError={(e) => {
+                            // hide broken image and show gray box instead
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.parentElement.style.background =
+                              "linear-gradient(135deg, #e5e7eb, #d1d5db)";
+                            e.currentTarget.parentElement.style.display =
+                              "flex";
+                            e.currentTarget.parentElement.style.alignItems =
+                              "center";
+                            e.currentTarget.parentElement.style.justifyContent =
+                              "center";
+                            e.currentTarget.parentElement.textContent =
+                              "No image";
                           }}
                         />
                       ) : (
