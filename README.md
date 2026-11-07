@@ -1,16 +1,33 @@
-# React + Vite
+# MakerWorks Learn
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A learning platform for MakerWorks Lab students, built with React, Vite and Firebase.
 
-Currently, two official plugins are available:
+**Live:** https://makerworkslab.in/learn/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## What it has
 
-## React Compiler
+- Login and signup, with separate **student** and **instructor** dashboards
+- **Courses and lessons** (3D printing, Arduino, micro:bit, Raspberry Pi)
+- **Messages**, **notifications** and a global chat
+- Profile and change-password pages
+- An **admin** page and a public **news** page
+- PDF export with jsPDF
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech
 
-## Expanding the ESLint configuration
+React, React Router, Firebase (authentication, database, storage) and jsPDF, bundled with Vite.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Run it
+
+```bash
+npm install
+npm run dev
+```
+
+The Firebase project settings live in `src/firebase/firebase.js`. Replace them with your own Firebase project and keep your Firestore security rules locked down.
+
+Built by [Ajay Ummadi](https://makerworkslab.in/ajayummadi/) at [MakerWorks Lab](https://makerworkslab.in/), Mumbai.
+
+## License
+
+The code is MIT licensed, see [LICENSE](LICENSE). Copyright (c) 2026 Ajay Ummadi. Photos, logos, names and written content belong to MakerWorks Lab and are not covered by the MIT license.
